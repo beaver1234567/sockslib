@@ -6,4 +6,5 @@ branches:
   - gh-pages
 language: java
 jdk: openjdk11
-install: mvn -f pom-deployable.xml install -Djdk.tls.client.protocols=TLSv1.2
+install: mvn -f pom-deployable.xml $MAVEN_OPTIONS dependency:go-offline compile test-compile
+script: mvn -f pom-deployable.xml $MAVEN_OPTIONS -Djdk.tls.client.protocols=TLSv1.2 install
