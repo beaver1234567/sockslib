@@ -9,3 +9,5 @@ target/
 *.log
 .idea/
 *.iml
+.gradle/
+build/

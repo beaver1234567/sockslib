@@ -362,43 +362,59 @@ public class SocksSocket extends Socket {
 
   @Override
   public synchronized void close() throws IOException {
-    proxy.getProxySocket().close();
+    final Socket socket = proxy.getProxySocket();
+    if (socket != null) 
+        socket.close();
     proxy.setProxySocket(null);
   }
 
   @Override
   public void shutdownInput() throws IOException {
-    proxy.getProxySocket().shutdownInput();
+    final Socket socket = proxy.getProxySocket();
+    if (socket == null) return;
+    socket.shutdownInput();
   }
 
   @Override
   public void shutdownOutput() throws IOException {
-    proxy.getProxySocket().shutdownOutput();
+    final Socket socket = proxy.getProxySocket();
+    if (socket == null) return;
+    socket.shutdownOutput();
   }
 
   @Override
   public boolean isConnected() {
-    return proxy.getProxySocket().isConnected();
+    final Socket socket = proxy.getProxySocket();
+    if (socket == null) return false;
+    return socket.isConnected();
   }
 
   @Override
   public boolean isBound() {
-    return proxy.getProxySocket().isBound();
+    final Socket socket = proxy.getProxySocket();
+    if (socket == null) return false;
+    return socket.isBound();
   }
 
   @Override
   public boolean isClosed() {
-    return proxy.getProxySocket().isClosed();
+    final Socket socket = proxy.getProxySocket();
+    if (socket == null) return true;
+    return socket.isClosed();
   }
 
   @Override
   public boolean isInputShutdown() {
-    return proxy.getProxySocket().isInputShutdown();
+    final Socket socket = proxy.getProxySocket();
+    if (socket == null) return true;
+    return socket.isInputShutdown();
   }
 
   @Override
   public boolean isOutputShutdown() {
-    return proxy.getProxySocket().isOutputShutdown();
+    final Socket socket = proxy.getProxySocket();
+    if (socket == null) return true;
+    return socket.isOutputShutdown();
   }
 
   @Override
