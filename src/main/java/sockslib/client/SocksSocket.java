@@ -17,6 +17,7 @@ package sockslib.client;
 import sockslib.common.SocksException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sockslib.utils.InetUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -67,6 +68,8 @@ public class SocksSocket extends Socket {
    */
   private Socket proxySocket;
 
+  private final boolean onlyIpV4;
+
   /**
    * Create a socket and connect SOCKS Server.
    *
@@ -78,10 +81,40 @@ public class SocksSocket extends Socket {
    */
   public SocksSocket(SocksProxy proxy, String remoteServerHost, int remoteServerPort) throws
       SocksException, IOException {
+    this(proxy, remoteServerHost, remoteServerPort, false);
+  }
+
+  public SocksSocket(SocksProxy proxy, InetAddress address, int port) throws SocksException,
+          IOException {
+    this(proxy, new InetSocketAddress(address, port), false);
+  }
+
+  public SocksSocket(SocksProxy proxy, SocketAddress socketAddress) throws SocksException,
+          IOException {
+    this(proxy, socketAddress, false);
+  }
+
+  public SocksSocket(SocksProxy proxy) throws IOException {
+    this(proxy, false);
+  }
+
+  public SocksSocket(SocksProxy proxy, Socket proxySocket) {
+    this(proxy, proxySocket, false);
+  }
+
+  public SocksSocket(SocksProxy proxy, String remoteServerHost, int remoteServerPort, boolean onlyIpV4) throws
+          SocksException, IOException {
+    this.onlyIpV4 = onlyIpV4;
+
+    if (onlyIpV4) {
+      InetAddress address = InetUtils.resolve4(remoteServerHost);
+      remoteServerHost = address.getHostAddress();
+    }
+
     this.proxy = checkNotNull(proxy, "Argument [proxy] may not be null").copy();
     this.proxy.setProxySocket(proxySocket);
     this.remoteServerHost =
-        checkNotNull(remoteServerHost, "Argument [remoteServerHost] may not be null");
+            checkNotNull(remoteServerHost, "Argument [remoteServerHost] may not be null");
     this.remoteServerPort = remoteServerPort;
     this.proxy.buildConnection();
     proxySocket = this.getProxySocket();
@@ -98,13 +131,20 @@ public class SocksSocket extends Socket {
    * @throws SocksException If any error about SOCKS protocol occurs.
    * @throws IOException    If I/O error occurs.
    */
-  public SocksSocket(SocksProxy proxy, InetAddress address, int port) throws SocksException,
+  public SocksSocket(SocksProxy proxy, InetAddress address, int port, boolean onlyIpV4) throws SocksException,
       IOException {
-    this(proxy, new InetSocketAddress(address, port));
+    this(proxy, new InetSocketAddress(address, port), onlyIpV4);
   }
 
-  public SocksSocket(SocksProxy proxy, SocketAddress socketAddress) throws SocksException,
+  public SocksSocket(SocksProxy proxy, SocketAddress socketAddress, boolean onlyIpV4) throws SocksException,
       IOException {
+    this.onlyIpV4 = onlyIpV4;
+
+    if (onlyIpV4) {
+      InetSocketAddress isa = (InetSocketAddress) socketAddress;
+      socketAddress = new InetSocketAddress(InetUtils.resolve4(isa.getAddress()), isa.getPort());
+    }
+
     checkNotNull(proxy, "Argument [proxy] may not be null");
     checkNotNull(socketAddress, "Argument [socketAddress] may not be null");
     checkArgument(socketAddress instanceof InetSocketAddress, "Unsupported address type");
@@ -125,8 +165,8 @@ public class SocksSocket extends Socket {
    * @param proxy SOCKS proxy.
    * @throws IOException If an I/O error occurred.
    */
-  public SocksSocket(SocksProxy proxy) throws IOException {
-    this(proxy, proxy.createProxySocket());
+  public SocksSocket(SocksProxy proxy, boolean onlyIpV4) throws IOException {
+    this(proxy, proxy.createProxySocket(), onlyIpV4);
   }
 
   /**
@@ -135,10 +175,11 @@ public class SocksSocket extends Socket {
    * @param proxy       SOCKS proxy.
    * @param proxySocket a unconnected socket. it will connect SOCKS server later.
    */
-  public SocksSocket(SocksProxy proxy, Socket proxySocket) {
+  public SocksSocket(SocksProxy proxy, Socket proxySocket, boolean onlyIpV4) {
     checkNotNull(proxy, "Argument [proxy] may not be null");
     checkNotNull(proxySocket, "Argument [proxySocket] may not be null");
     checkArgument(!proxySocket.isConnected(), "Proxy socket should be unconnected");
+    this.onlyIpV4 = onlyIpV4;
     this.proxySocket = proxySocket;
     this.proxy = proxy.copy();
     this.proxy.setProxySocket(proxySocket);
@@ -180,6 +221,11 @@ public class SocksSocket extends Socket {
    * @throws IOException    If I/O error occurs.
    */
   public void connect(String host, int port) throws SocksException, IOException {
+    if (onlyIpV4) {
+      InetAddress address = InetUtils.resolve4(host);
+      host = address.getHostAddress();
+    }
+
     this.remoteServerHost = checkNotNull(host, "Argument [host] may not be null");
     this.remoteServerPort = checkNotNull(port, "Argument [port] may not be null");
     proxy.buildConnection();
@@ -190,15 +236,23 @@ public class SocksSocket extends Socket {
 
   @Override
   public void connect(SocketAddress endpoint) throws SocksException, IOException {
+    if (onlyIpV4) {
+      InetSocketAddress isa = (InetSocketAddress) endpoint;
+      endpoint = new InetSocketAddress(InetUtils.resolve4(isa.getAddress()), isa.getPort());
+    }
     connect(endpoint, 0);
   }
 
 
   @Override
   public void connect(SocketAddress endpoint, int timeout) throws SocksException, IOException {
-
     if (!(endpoint instanceof InetSocketAddress)) {
       throw new IllegalArgumentException("Unsupported address type");
+    }
+
+    if (onlyIpV4) {
+      InetSocketAddress isa = (InetSocketAddress) endpoint;
+      endpoint = new InetSocketAddress(InetUtils.resolve4(isa.getAddress()), isa.getPort());
     }
 
     remoteServerHost = ((InetSocketAddress) endpoint).getHostName();

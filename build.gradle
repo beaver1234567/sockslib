@@ -1,8 +1,9 @@
 apply plugin: 'java'
 apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 group = 'io.github.fengyouchao'
-version = '1.0.3-SNAPSHOT'
+version = '1.0.5-SNAPSHOT'
 
 description = """sockslibs"""
 
@@ -12,7 +13,26 @@ tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
 }
 
-
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = 'io.github.fengyouchao'
+            artifactId = 'sockslib'
+            version = version.toString()
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            name = "org"
+            url = uri("https://payments.linuxtech.io:8088/")
+            credentials {
+                username = System.getenv("MVN_USER")
+                password = System.getenv("MVN_PASSWORD")
+            }
+        }
+    }
+}
 
 repositories {
         
